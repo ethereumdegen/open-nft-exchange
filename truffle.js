@@ -13,6 +13,11 @@ module.exports = {
 
     }
   },
+  compilers: {
+      solc: {
+        version: "0.5.0",
+        }
+      },
    rpc: {
 	host: 'localhost',
 	post:8080
