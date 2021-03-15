@@ -361,14 +361,17 @@ library SafeMath {
 
 
 
-contract OpenNFTExchange   {
+contract OpenNFTExchange is ERC721TokenReceiver  {
 
  using SafeMath for uint;
 
-  mapping (address => mapping (address => uint)) public tokens; //mapping of token addresses to mapping of account balances (token=0 means Ether)
+  mapping (address => mapping (uint => address)) public nftEscrow;  
  
-  mapping (address => mapping (bytes32 => bool)) public orders; //mapping of user accounts to mapping of order hashes to booleans (true = submitted by user, equivalent to offchain signature)
-  mapping (address => mapping (bytes32 => uint)) public orderFills; //mapping of user accounts to mapping of order hashes to uints (amount of order that has been filled)
+  mapping (address => mapping (address => uint)) public currencyEscrow; //erc20 balances for bids 
+ 
+
+  //mapping (address => mapping (bytes32 => bool)) public orders; //mapping of user accounts to mapping of order hashes to booleans (true = submitted by user, equivalent to offchain signature)
+  //mapping (address => mapping (bytes32 => uint)) public orderFills; //mapping of user accounts to mapping of order hashes to uints (amount of order that has been filled)
 
   event Order(address tokenGet, uint amountGet, address tokenGive, uint amountGive, uint expires, uint nonce, address user);
   event Cancel(address tokenGet, uint amountGet, address tokenGive, uint amountGive, uint expires, uint nonce, address user, uint8 v, bytes32 r, bytes32 s);
@@ -380,35 +383,66 @@ contract OpenNFTExchange   {
 
   }
 
+  function onERC721Received(address _operator, address _from, uint256 _tokenId, bytes calldata _data) external returns(bytes4)
+  {
+    return bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"));
+  }
+
   //Do not allow ETH to enter
    function() external payable {
     revert();
   }
 
+  //require pre-approval 
+  function depositNFT(address contractAddress, uint256 tokenId, address from) public returns (bool){
+      ERC712(contractAddress).safeTransferFrom(from, address(this), tokenId);
 
-  function depositNFT() public returns (bool){
-      
+      nftEscrow[contractAddress][tokenId] = from;
+
   }
   
   
-  function withdrawNFT() public returns (bool){
-      
+  function withdrawNFT(address contractAddress, uint256 tokenId, address to) public returns (bool){
+      address nftOwner = nftEscrow[contractAddress][tokenId];
+      require(nftOwner == to);
+
+       ERC712(contractAddress).safeTransferFrom(address(this), to, tokenId);
+
+       nftEscrow[contractAddress][tokenId] = address(0x0);
   }
   
-  //buyer places a bid on an NFT 
-   function offerBid() public returns (bool){
+  //buyer places a bid on an NFT .   Able to override a previous bid if higher 
+  //move erc20 tokens into escrow in this contract during OfferBid 
+   function offerBid(address contractAddress, uint256 tokenId, address currencyToken, uint currencyAmount) public returns (bool){
+      IERC20(currencyToken).transferFrom( msg.sender, address(this), currencyAmount );
+      currencyEscrow[currencyToken][msg.sender] = currencyEscrow[currencyToken][msg.sender].add(currencyAmount);
+
       
   }
-   function acceptBid() public returns (bool){
+
+   function acceptBid(address contractAddress, uint256 tokenId, address currencyToken, uint currencyAmount) public returns (bool){
+      address nftOwner = nftEscrow[contractAddress][tokenId];
+      require(nftOwner == msg.sender);
+
       
+
   }
   
   
    //seller offers an NFT for sale 
-   function offerSale() public returns (bool){
-      
-  }
-   function acceptSale() public returns (bool){
+   function offerSale(address contractAddress, uint256 tokenId, address currencyToken, uint currencyAmount) public returns (bool){
+      address nftOwner = nftEscrow[contractAddress][tokenId];
+      require(nftOwner == msg.sender);
+
+   }
+
+  //sends back the tokens in escrow for this bid 
+   function cancelBid(address contractAddress, uint256 tokenId){
+
+   }
+
+    //requires preapproval of tokens to this contract  
+   function acceptSale(address contractAddress, uint256 tokenId, address currencyToken, uint currencyAmount) public returns (bool){
       
   }
   
