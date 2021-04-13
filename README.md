@@ -1,6 +1,6 @@
 ## Open NFT Exchange 
-#### Smart Contracts 
-
+ 
+This is a skeletal template for an NFT exchange.  It does not implement required logic but is a decent framework to start with.  
 
 
 
