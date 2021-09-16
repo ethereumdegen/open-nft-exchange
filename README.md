@@ -5,6 +5,9 @@ This is a skeletal template for an NFT exchange.  It does not implement required
 See the Cryptopunks contract's integrated market if you need help figuring out some internal logic you might add into the methods.... :)  
 
 
+see https://github.com/admazzola/artblock-store-contract 
+
+
 
 ### Getting Started 
 Install NodeJS 10 (nvm install 10)
